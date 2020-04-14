@@ -29,7 +29,7 @@ class App extends React.Component {
       loggedin: loggedin,
       loginSignup: 'login',
       editRead: 'edit',
-      searchAnalyze: 'analyze',
+      searchAnalyze: 'search',
       recording: false,
       analyzing: false,
       credentialsRefreshTime: 0,
@@ -39,7 +39,13 @@ class App extends React.Component {
         ta : {url: '', token: ''},
         nlu : {url: '', token: ''},
       },
-      entryText: ""
+      entries: [],
+      entry: {
+        id: null,
+        date: Date.now(),
+        text: ""
+      },
+      searchText: ""
     }
   }
   
@@ -64,21 +70,30 @@ class App extends React.Component {
   
     let tokens = await Promise.all([stt, ta, pi, nlu]);
   
-    credentials.stt.token = `Bearer ${tokens[0].iam_token}`;
+    credentials.stt.token = `${tokens[0].iam_token}`;
     credentials.pi.token = `Bearer ${tokens[1].iam_token}`;
     credentials.ta.token = `Bearer ${tokens[2].iam_token}`;
     credentials.nlu.token = `Bearer ${tokens[3].iam_token}`;
     credentials.stt.url = tokens[0].api_url;
-    credentials.pi.url = tokens[1].api_url;
-    credentials.ta.url = tokens[2].api_url;
-    credentials.nlu.url = tokens[3].api_url;
+    credentials.pi.url = `${tokens[1].api_url}${PI_ENDPOINT}?version=${PI_VERSION}`;
+    credentials.ta.url = `${tokens[2].api_url}${TA_ENDPOINT}?version=${TA_VERSION}`;
+    credentials.nlu.url = `${tokens[3].api_url}${NLU_ENDPOINT}?version=${NLU_VERSION}`;
   
-    console.log('Credentials Refreshed', credentials);
     this.setState({credentials, credentialsRefreshTime});
   }
 
+  uint8ArrayToString = (uint8Arr) => {
+    return String.fromCharCode.apply(null, uint8Arr);
+  }
+
   eventDataReceived = (data) => {
-    console.log('Speech to Text Data:', data)
+    let entry = Object.assign({}, this.state.entry)
+    let entryText = entry.text
+
+    entryText = entryText.concat(this.uint8ArrayToString(data))
+    entry.text = entryText
+
+    this.setState({entry})
   }
 
   eventErrorReceived = (error) => {
@@ -203,7 +218,7 @@ class App extends React.Component {
   //   let parsedResponse = await response.json();
   //   console.log(parsedResponse)
   //   return parsedResponse
-  // }
+  // } 
 
   login = (username, password) => {
     const user = {user: {username: username, password: password}}
@@ -222,6 +237,17 @@ class App extends React.Component {
           localStorage.setItem('token', `Bearer ${token}`)
           this.setState({loggedin: true})
           this.refreshCredentials()
+          .then(
+            fetch(`${BASE_URL}/entries`)
+            .then(entriesResponse => {
+              entriesResponse.json().then(entriesResponseBody=>{
+                if(response.ok) {
+                  const entries = entriesResponseBody.entries.sort((a, b) => a.date - b.date)
+                  this.setState({entries})
+                }
+              })
+            })
+          )
           .catch(error => console.log('Credential Refresh Error', error));
         }
         else {
@@ -290,6 +316,37 @@ class App extends React.Component {
     this.setState({searchAnalyze: desiredState})
   }
 
+  executeSearch = () => {
+    const searchText = this.state.searchText
+
+    // Call B/E record search
+  }
+
+  editEntryText = (event) => {
+    let entry = Object.assign({}, this.state.entry)
+    const entryText = event.target.value
+    entry.text = entryText
+
+    this.setState({entry})
+  }
+
+  clearEntryText = () => {
+    let entry = Object.assign({}, this.state.entry)
+    entry.text = ""
+
+    this.setState({entry})
+  }
+
+  editSearchText = (event) => {
+    const searchText = event.target.value
+
+    this.setState({searchText})    
+  }
+
+  clearSearchText = () => {
+    this.setState({searchText: ''})
+  }
+
   executeLoginSignup = (event) => {
     event.preventDefault()
     const username = event.target.username.value
@@ -327,13 +384,33 @@ class App extends React.Component {
         <header className="App-header">
           {loggedin ?
             <LoggedInHeader logout={this.logout}/> :
-            <LoginSignupHeader loginSignup={this.state.loginSignup} executeLoginSignup={this.executeLoginSignup} setLoginSignup={this.setLoginSignup}/>
+            <LoginSignupHeader
+              loginSignup={this.state.loginSignup}
+              executeLoginSignup={this.executeLoginSignup}
+              setLoginSignup={this.setLoginSignup}
+            />
           }
         </header>
         {loggedin ? 
           <div className="App-body">
-            <Entry editRead={this.state.editRead} setEditRead={this.setEditRead}/>
-            <Tools searchAnalyze={this.state.searchAnalyze} setSearchAnalyze={this.setSearchAnalyze}/>
+            <Entry
+              entry = {this.state.entry}
+              editRead={this.state.editRead}
+              setEditRead={this.setEditRead}
+              recording={this.state.recording}
+              startRecording={this.startRecording}
+              stopRecording={this.stopRecording}
+              editEntryText={this.editEntryText}
+              clearEntryText={this.clearEntryText}
+            />
+            <Tools
+              searchAnalyze={this.state.searchAnalyze}
+              setSearchAnalyze={this.setSearchAnalyze}
+              searchText={this.state.searchText}
+              editSearchText={this.editSearchText} 
+              executeSearch={this.executeSearch}
+              clearSearchText={this.clearSearchText}
+            />
           </div> : null}
       </div>
     )

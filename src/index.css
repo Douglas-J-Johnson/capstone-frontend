@@ -91,6 +91,12 @@ i:hover, .icon:hover {
   font-weight: normal;
 }
 
+.warn:hover, .warn:hover {
+  color: rgb(180, 40, 40);
+  font-style: normal;
+  font-weight: normal;
+}
+
 i .selected, icon .selected {
   color: blue;
 }
