@@ -150,7 +150,7 @@ class App extends React.Component {
     const entryText = this.state.entryText
 
     this.refreshCredentials()
-    this.analyzeText(entryText)
+    .then(this.analyzeText(entryText))
   }
 
   analyzeText = async function (textToAnalyze) {
@@ -173,7 +173,7 @@ class App extends React.Component {
     )*/
   
     let analyses = await Promise.all([ta, pi])
-    return analyses
+    return {tone_analyzer: analyses[0], personailty_insights: analyses[1]}
   }
 
   getToneAnalysis = async function (serviceURL, serviceToken, textToAnalyze) {
@@ -344,6 +344,20 @@ class App extends React.Component {
     this.setState({entry: entry, readEntryIndex: index})
   }
 
+  entryByEntryId = (entryID) => {
+    const entries = this.state.entries
+    const numberOfEntries = this.state.entries.length
+    let entryIndex = 0
+
+    for(let i = 0; i < numberOfEntries; i++) {
+      if (entries[i].id === entryID) {
+        entryIndex = i
+      }
+    }
+
+    this.setEntry(entryIndex)
+  }
+
   newestEntry = () => {
     const numberOfEntries = this.state.entries.length
 
@@ -453,7 +467,6 @@ class App extends React.Component {
 
   createEntry = () => {
     const entry = this.state.entry
-    console.log(this.state.credentials)
 
     let newEntry = {
       id: null,
@@ -488,7 +501,6 @@ class App extends React.Component {
       //   })
     }
     else {
-      // Call analyze
       // CREATE!!!!!
       fetch(`${BASE_URL}/entries`,{method: "POST",
           headers: {
@@ -507,24 +519,45 @@ class App extends React.Component {
             this.setState({newEntry})
 
             this.analyzeText(newEntry.text)
-            .then(analyses => console.log('Analyses', analyses))
-            .catch(error => console.log('Credential Refresh Error', error));
-
-            fetch(`${BASE_URL}/entries`, {
-              headers: {
-                'Accept': 'application/json',
-                'Authorization' : localStorage.getItem('token')
-              }
-            })
-            .then(entriesResponse => {
-              entriesResponse.json().then(entriesResponseBody=>{
-                if(entriesResponse.ok) {
-                  const entries = entriesResponseBody.entries.sort((a, b) => a.date - b.date)
-                  console.log('Entries', entries)
-                  this.setState({entries: entries})
+            .then(analyses => {
+              fetch(`${BASE_URL}/analyses`,{method: "POST",
+                  headers: {
+                    'Accept': 'application/json',
+                    'Authorization' : localStorage.getItem('token'),
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({analysis: {entry_id: newEntry.id, raw_results: analyses}})
                 }
+              )
+              .then(analysisCreateResponse =>{
+                analysisCreateResponse.json().then(analysisResponse => {
+                  if(analysisCreateResponse.ok) {
+                    fetch(`${BASE_URL}/entries`, {
+                      headers: {
+                        'Accept': 'application/json',
+                        'Authorization' : localStorage.getItem('token')
+                      }
+                    })
+                    .then(entriesResponse => {
+                      entriesResponse.json().then(entriesResponseBody=>{
+                        if(entriesResponse.ok) {
+                          const entries = entriesResponseBody.entries.sort((a, b) => a.date - b.date)
+                          this.setState({entries: entries})
+                          this.entryByEntryId(newEntry.id)
+                        }
+                        else {
+                          console.log("Error retrieving all entries.", response)
+                        }
+                      })
+                    })
+                  }
+                  else {
+                    console.log("Analysis creation error.", response)
+                  }
+                })
               })
             })
+            .catch(error => console.log('Credential Refresh Error', error));
           }
           else {
             console.log("Entry creation error.", response)
