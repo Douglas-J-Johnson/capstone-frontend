@@ -1,10 +1,24 @@
 import React from 'react'
 import EntryModeSelect from './EntryModeSelect'
 
-export default function EditControls({setEditRead, recording, startRecording, stopRecording, clearEntryText}) {
+export default function EditControls(
+    {
+        editRead,
+        setEditRead,
+        recording,
+        startRecording,
+        stopRecording,
+        createEntry,
+        clearEntryText
+    }
+    ) {
+
     return (
         <div className="controls edit-controls">
-            <EntryModeSelect setEditRead={setEditRead}/>
+            <EntryModeSelect
+                setEditRead={setEditRead}
+                editRead={editRead}
+            />
             <div className="record-controls">
                 {recording ? 
                     <i className="icon-mute_off icon2x"></i> :
@@ -16,7 +30,10 @@ export default function EditControls({setEditRead, recording, startRecording, st
                 }
             </div>
             <div className="controls">
-                <i className="icon-check icon3x"></i>
+                {recording ?
+                    <i className="icon-check icon3x"></i> :
+                    <i className="icon-check icon3x" onClick={createEntry}></i>
+                }
                 {recording ?
                     <i className="icon-trash_can warn icon3x"></i> :
                     <i className="icon-trash_can warn icon3x" onClick={clearEntryText}></i>

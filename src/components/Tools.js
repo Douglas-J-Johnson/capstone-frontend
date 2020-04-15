@@ -14,13 +14,17 @@ export default function Tools(
         <div className="tools">
           {searchAnalyze === 'search' ?
             <SearchControls
-                setSearchAnalyze={setSearchAnalyze}
-                searchText={searchText}
-                editSearchText={editSearchText}
-                executeSearch={executeSearch}
-                clearSearchText={clearSearchText}
+              searchAnalyze={searchAnalyze}
+              setSearchAnalyze={setSearchAnalyze}
+              searchText={searchText}
+              editSearchText={editSearchText}
+              executeSearch={executeSearch}
+              clearSearchText={clearSearchText}
             /> :
-            <AnalyzeControls setSearchAnalyze={setSearchAnalyze}/>
+            <AnalyzeControls
+              searchAnalyze={searchAnalyze}
+              setSearchAnalyze={setSearchAnalyze}
+            />
           }
         </div>
     )

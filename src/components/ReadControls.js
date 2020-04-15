@@ -1,17 +1,24 @@
 import React from 'react'
 import EntryModeSelect from './EntryModeSelect'
 
-export default function ReadControls({setEditRead}) {
+export default function ReadControls(
+    {
+        entry,
+        editRead,
+        setEditRead,
+        previousEntry,
+        nextEntry
+    }) {
     return (
     <div className="controls read-controls">
-        <EntryModeSelect setEditRead={setEditRead}/>
+        <EntryModeSelect
+            editRead={editRead}
+            setEditRead={setEditRead}
+        />
         <div className="controls">
-            <i className="icon-arrow_big_left"></i>
-            <div className="controls-text">January 1, 1900</div>
-            <i className="icon-arrow_big_right"></i>
-        </div>
-        <div className="controls">
-            <i className="icon-trash_can warn icon3x"></i>
+            <i className="icon-arrow_big_left" onClick={previousEntry}></i>
+                <div className="controls-text">{entry.date}</div>
+            <i className="icon-arrow_big_right" onClick={nextEntry}></i>
         </div>
       </div>
     )

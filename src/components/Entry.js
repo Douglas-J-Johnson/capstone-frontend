@@ -1,45 +1,54 @@
 import React from 'react'
 import ReadControls from './ReadControls'
 import EditControls from './EditControls'
-import Moment from 'react-moment'
+import ReadPage from './ReadPage'
+import EditPage from './EditPage'
 
 export default function Entry(
   {entry, 
   editRead,
   setEditRead,
+  previousEntry,
+  nextEntry,
   recording,
   startRecording,
   stopRecording,
+  editEntryDate,
   editEntryText,
+  createEntry,
   clearEntryText}
   ) {
+
   return (
       <div className="entry">
-        {editRead === 'edit' ?
+        {editRead === 'edit' || editRead === 'new' ?
           <EditControls
+            editRead={editRead}
             setEditRead={setEditRead}
             recording={recording}
             startRecording={startRecording}
             stopRecording={stopRecording}
+            createEntry={createEntry}
             clearEntryText={clearEntryText}
           /> :
-          <ReadControls setEditRead={setEditRead}/>
+          <ReadControls
+            entry={entry}
+            editRead={editRead}
+            setEditRead={setEditRead}
+            previousEntry={previousEntry}
+            nextEntry={nextEntry}
+          />
         }
-        <div className="page">
-          {entry.date > 0 ?
-            <h2>
-              <Moment format="dddd MMMM D[,] YYYY">
-                {entry.date}
-              </Moment>
-            </h2>:
-            null
-            }
-          <textarea
-            className="entry-text"
-            value={entry.text}
-            onChange={editEntryText}
-          ></textarea>
-        </div>
+        {editRead === 'edit' || editRead === 'new' ?
+          <EditPage
+            entry={entry}
+            editEntryText={editEntryText}
+            editEntryDate={editEntryDate}
+          /> :
+          <ReadPage
+            entry={entry} 
+          />
+        }
       </div>
   )
 }

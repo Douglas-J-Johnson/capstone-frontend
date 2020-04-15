@@ -1,8 +1,9 @@
 /*begin styling*/
-@import url('https://fonts.googleapis.com/css?family=Lustria|Open+Sans&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Lustria|Open+Sans|Libre+Caslon+Text&display=swap');
 
 html {
 	background-color: rgb(250, 250, 245);
+	box-sizing: border-box;
 }
 
 h2 {
@@ -14,10 +15,10 @@ h2 {
 .entry-text {
 	font-family: 'Lustria', serif;
 	font-size: 1.5rem;
+	line-height: 1.5;
 	border: 0px;
 	background-color: rgb(250, 250, 245);
-	height: 500px;
-	width: 100%;
+	height: 750px;
 }
 
 .App {
@@ -70,8 +71,23 @@ h2 {
 }
 
 .page {
-	line-height: 1.5;
-	width: 100%;
+	display: flex;
+	flex-direction: column;
+	margin: 2.5rem;
+}
+
+.entry-date {
+	font-family: 'Libre Caslon Text', serif;
+	height: 3rem;
+	font-size: 2rem;
+	color: rgb(50, 50, 50);
+	background-color: rgb(250, 250, 245);
+	border: 0px;
+	margin-bottom: 1rem;
+}
+
+.invalid {
+	color: rgb(145, 45, 45);
 }
 
 .username-password {
@@ -87,6 +103,14 @@ h2 {
 	border: 0px;
 	width: 18rem;
 }
+
+.login-signin-logout-text {
+	font-family: 'Open Sans', sans-serif;
+	font-size: 2rem;
+	padding: 0.5rem;
+	margin: 0.5rem;
+}
+
 
 .login-signin-logout-button {
 	font-family: 'Open Sans', sans-serif;

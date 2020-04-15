@@ -4,6 +4,13 @@ import LoggedInHeader from './components/LoggedInHeader'
 import Entry from './components/Entry'
 import Tools from './components/Tools'
 import './App.css';
+
+let moment = require('moment')
+const earliestDate = 'January 1, 1900'
+const earliestDateInt = moment(earliestDate).valueOf()
+const latestDate = 'December 31, 2099'
+const latestDateInt = moment(latestDate).valueOf()
+
 const WatsonSpeech = require('watson-speech');
 
 const BASE_URL = "http://localhost:3000";
@@ -40,12 +47,18 @@ class App extends React.Component {
         nlu : {url: '', token: ''},
       },
       entries: [],
+      readEntryIndex: 0,
       entry: {
         id: null,
-        date: Date.now(),
+        date: moment().format("MMMM D[,] YYYY"),
+        dateIsValid: true,
         text: ""
       },
-      searchText: ""
+      searchText: "",
+      loginMessage: "",
+      loginError: "",
+      editMessage: "",
+      editError: ""
     }
   }
   
@@ -68,7 +81,7 @@ class App extends React.Component {
     let pi = this.getServiceToken('personality_insights');
     let nlu = this.getServiceToken('natural_language_understanding');
   
-    let tokens = await Promise.all([stt, ta, pi, nlu]);
+    let tokens = await Promise.all([stt, pi, ta, nlu]);
   
     credentials.stt.token = `${tokens[0].iam_token}`;
     credentials.pi.token = `Bearer ${tokens[1].iam_token}`;
@@ -145,28 +158,27 @@ class App extends React.Component {
 
     let ta = this.getToneAnalysis(
       credentials.ta.url,
-      `Bearer ${credentials.ta.token}`,
+      credentials.ta.token,
       textToAnalyze
     )
     let pi = this.getPersonalityInsights(
       credentials.pi.url,
-      `Bearer ${credentials.pi.token}`,
+      credentials.pi.token,
       textToAnalyze
     )
     /*let nlu = getNaturalLanguageUnderstanding(
       credentials.nlu.url,
-      `Bearer ${credentials.nlu.token}`,
+      credentials.nlu.token,
       textToAnalyze
     )*/
   
     let analyses = await Promise.all([ta, pi])
-  
-    console.log("Analyses Completed", analyses)
+    return analyses
   }
 
   getToneAnalysis = async function (serviceURL, serviceToken, textToAnalyze) {
-    console.log(serviceURL)
-    console.log(serviceToken)
+    //console.log(serviceToken)
+    console.log('Tone Analysis', serviceURL)
     let response = await fetch(serviceURL, 
       {
         method: 'POST',
@@ -183,8 +195,8 @@ class App extends React.Component {
   }
   
   getPersonalityInsights= async function (serviceURL, serviceToken, textToAnalyze) {
-    console.log(serviceURL)
-    console.log(serviceToken)
+    //console.log(serviceToken)
+    console.log('Personality Insights', serviceURL)
     let response = await fetch(serviceURL, 
       {
         method: 'POST',
@@ -202,8 +214,6 @@ class App extends React.Component {
   
   //Needs work
   // getNaturalLanguageUnderstanding = async function (serviceURL, serviceToken, textToAnalyze) {
-  //   console.log(serviceURL)
-  //   console.log(serviceToken)
   //   let response = await fetch(serviceURL, 
   //     {
   //       method: 'POST',
@@ -216,7 +226,6 @@ class App extends React.Component {
   //     }
   //   );
   //   let parsedResponse = await response.json();
-  //   console.log(parsedResponse)
   //   return parsedResponse
   // } 
 
@@ -236,14 +245,19 @@ class App extends React.Component {
           const token = responseBody.token
           localStorage.setItem('token', `Bearer ${token}`)
           this.setState({loggedin: true})
+          this.setState({loginMessage: `Welcome, ${username}!`, loginError: ''})
           this.refreshCredentials()
           .then(
-            fetch(`${BASE_URL}/entries`)
+            fetch(`${BASE_URL}/entries`, {
+            headers: {
+              'Accept': 'application/json',
+              'Authorization' : localStorage.getItem('token')
+            }})
             .then(entriesResponse => {
               entriesResponse.json().then(entriesResponseBody=>{
-                if(response.ok) {
+                if(entriesResponse.ok) {
                   const entries = entriesResponseBody.entries.sort((a, b) => a.date - b.date)
-                  this.setState({entries})
+                  this.setState({entries: entries})
                 }
               })
             })
@@ -251,6 +265,7 @@ class App extends React.Component {
           .catch(error => console.log('Credential Refresh Error', error));
         }
         else {
+          this.setState({loginMessage: '', loginError: 'Unable to log in.'})
           console.log('Could not log in.', responseBody.message)
         }
       })
@@ -288,27 +303,99 @@ class App extends React.Component {
                 const token = loginResponseBody.token
                 localStorage.setItem('token', `Bearer ${token}`)
                 this.setState({loggedin: true})
+                this.setState({loginMessages: `Welcome, ${username}!`})
                 this.refreshCredentials()
                 .catch(error => console.log('Credential Refresh Error', error));
               }
               else {
-                console.log('Could not log in.', loginResponseBody.message)
+                this.setState({loginMessage: '', loginError: 'Unable to log in.'})
               }
             })
           })
         }
         else {
-          console.log('Could not sign up user.', responseBody.message)
+          this.setState({loginMessage: '', loginError: 'Unable to sign up.'})
         }
       })
     })   
   }
 
   setLoginSignup = (desiredState) => {
-    this.setState({loginSignup : desiredState})
+    
+
+    this.setState({
+      loginSignup: desiredState,
+      loginMessage: '',
+      loginError: ''
+    })
+  }
+
+  setEntry = (index) => {
+    const entries = this.state.entries
+    const selectedEntry = entries[index]
+
+    const entry = {
+      id: selectedEntry.id,
+      date: moment(parseInt(selectedEntry.date)).format("MMMM D[,] YYYY"),
+      dateIsValid: true,
+      text: selectedEntry.text
+    }
+
+    this.setState({entry: entry, readEntryIndex: index})
+  }
+
+  newestEntry = () => {
+    const numberOfEntries = this.state.entries.length
+
+    this.setEntry(numberOfEntries - 1)
+  }
+
+  nextEntry = () => {
+    const currentReadEntryIndex = this.state.readEntryIndex
+    const numberOfEntries = this.state.entries.length
+
+    if (currentReadEntryIndex < (numberOfEntries - 1))
+    {
+      this.setEntry(currentReadEntryIndex + 1)
+    }
+  }
+
+  previousEntry = () => {
+    const currentReadEntryIndex = this.state.readEntryIndex
+
+    if (currentReadEntryIndex > 0)
+    {
+      this.setEntry(currentReadEntryIndex - 1)
+    }
   }
 
   setEditRead = (desiredState) => {
+    let currentEntry = Object.assign({}, this.state.entry)
+
+    if(desiredState === 'read') {
+      if (currentEntry.id === null) {
+        this.newestEntry()
+      }
+      else {
+        // change
+      }
+    }
+    else if (desiredState === 'edit') {
+      // change?
+    }
+    else if (desiredState === 'new') {
+      const entry = {
+        id: null,
+        date: moment().format("MMMM D[,] YYYY"),
+        dateIsValid: true,
+        text: ""
+      }
+
+      desiredState = 'edit'
+      this.setState({entry})
+    }
+
+    console.log('Desired State', desiredState)
     this.setState({editRead: desiredState})
   }
 
@@ -320,6 +407,33 @@ class App extends React.Component {
     const searchText = this.state.searchText
 
     // Call B/E record search
+  }
+
+  customCheckDateIsValid = (date) => {
+    if(moment(date).isValid() && moment(date).valueOf() >= earliestDateInt && moment(date).valueOf() <= latestDateInt) {
+      return true
+    }
+    else {
+      return false
+    }
+  }
+
+  editEntryDate = (event) => {
+    let entry = Object.assign({}, this.state.entry)
+    const entryDate = event.target.value
+    
+    entry.date = entryDate
+
+    if(this.customCheckDateIsValid(entryDate)) {
+      this.setState({loginError: ''})
+      entry.dateIsValid = true
+    }
+    else {
+      this.setState({loginError: 'Correct date before submitting your entry.'})
+      entry.dateIsValid = false
+    }
+
+    this.setState({entry})
   }
 
   editEntryText = (event) => {
@@ -335,6 +449,115 @@ class App extends React.Component {
     entry.text = ""
 
     this.setState({entry})
+  }
+
+  createEntry = () => {
+    const entry = this.state.entry
+    console.log(this.state.credentials)
+
+    let newEntry = {
+      id: null,
+      date: moment(entry.date).valueOf(),
+      dateIsValid: entry.dateIsValid,
+      text: entry.text
+    }
+
+    if (!entry.dateIsValid) {
+      return
+    }
+
+    if (entry.id) {
+      // Call analyze
+      // UPDATE!!!!!
+      // fetch(`${BASE_URL}/`)
+      // if successful
+      // else
+      // Retrieve Entries
+      // fetch(`${BASE_URL}/entries`, {
+      //   headers: {
+      //     'Accept': 'application/json',
+      //     'Authorization' : localStorage.getItem('token')
+      //   }})
+      //   .then(entriesResponse => {
+      //     entriesResponse.json().then(entriesResponseBody=>{
+      //       if(response.ok) {
+      //         const entries = entriesResponseBody.entries.sort((a, b) => a.date - b.date)
+      //         this.setState({entries})
+      //       }
+      //     })
+      //   })
+    }
+    else {
+      // Call analyze
+      // CREATE!!!!!
+      fetch(`${BASE_URL}/entries`,{method: "POST",
+          headers: {
+            'Accept': 'application/json',
+            'Authorization' : localStorage.getItem('token'),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({entry: newEntry})
+        }
+      )
+      .then(createResponse =>{
+        createResponse.json().then(response => {
+          if(createResponse.ok) {
+            newEntry.id = response.entry.id
+            newEntry.date = moment(newEntry.date).format("MMMM D[,] YYYY")
+            this.setState({newEntry})
+
+            this.analyzeText(newEntry.text)
+            .then(analyses => console.log('Analyses', analyses))
+            .catch(error => console.log('Credential Refresh Error', error));
+
+            fetch(`${BASE_URL}/entries`, {
+              headers: {
+                'Accept': 'application/json',
+                'Authorization' : localStorage.getItem('token')
+              }
+            })
+            .then(entriesResponse => {
+              entriesResponse.json().then(entriesResponseBody=>{
+                if(entriesResponse.ok) {
+                  const entries = entriesResponseBody.entries.sort((a, b) => a.date - b.date)
+                  console.log('Entries', entries)
+                  this.setState({entries: entries})
+                }
+              })
+            })
+          }
+          else {
+            console.log("Entry creation error.", response)
+          }
+        })
+      })
+    }
+  }
+
+  DeleteEntry = () => {
+    /* fetch(`${BASE_URL}/analyses/${analysis.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization' : localStorage.getItem('token')
+      }
+    })
+    .then(analysisResponse => {
+      if(analysisResponse.ok) {
+        fetch(`${BASE_URL}/analyses/${analysis.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization' : localStorage.getItem('token')
+          }
+        })
+        .then(entryResponse => {
+          if(entryReponse.ok) {
+            //update state
+          }
+        })
+      }
+    })*/
   }
 
   editSearchText = (event) => {
@@ -359,7 +582,7 @@ class App extends React.Component {
     }
     else {
       if (username === password) {
-        console.log('User name and password cannot be the same.')
+        this.setState({loginMessage: '', loginError: 'User name and password cannot be the same.'})
       }
       else {
         this.signup(username, password)
@@ -373,18 +596,46 @@ class App extends React.Component {
     if(loggedin) {
       this.refreshCredentials()
       .catch(error => console.log('Credential Refresh Error', error));
+
+      fetch(`${BASE_URL}/entries`, {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization' : localStorage.getItem('token')
+        }
+      })
+      .then(entriesResponse => {
+        entriesResponse.json().then(entriesResponseBody=>{
+          if(entriesResponse.ok) {
+            const entries = entriesResponseBody.entries.sort((a, b) => a.date - b.date)
+            this.setState({entries: entries})
+          }
+        })
+      })
     }
   }
 
   render () {
     const loggedin = this.state.loggedin
+    const loginError = this.state.loginError
+    const loginMessage = this.state.loginMessage
+    const editError = this.state.editError
+    const editMessage = this.state.editMessage
 
     return (
       <div className="App">
         <header className="App-header">
           {loggedin ?
-            <LoggedInHeader logout={this.logout}/> :
+            <LoggedInHeader 
+              loginError={loginError}
+              loginMessage={loginMessage}
+              editError={editError}
+              editMessage={editMessage}
+              logout={this.logout}/> :
             <LoginSignupHeader
+              loginError={loginError}
+              loginMessage={loginMessage}
+              editError={editError}
+              editMessage={editMessage}
               loginSignup={this.state.loginSignup}
               executeLoginSignup={this.executeLoginSignup}
               setLoginSignup={this.setLoginSignup}
@@ -397,11 +648,15 @@ class App extends React.Component {
               entry = {this.state.entry}
               editRead={this.state.editRead}
               setEditRead={this.setEditRead}
+              previousEntry={this.previousEntry}
+              nextEntry={this.nextEntry}
               recording={this.state.recording}
               startRecording={this.startRecording}
               stopRecording={this.stopRecording}
+              editEntryDate={this.editEntryDate}
               editEntryText={this.editEntryText}
               clearEntryText={this.clearEntryText}
+              createEntry={this.createEntry}
             />
             <Tools
               searchAnalyze={this.state.searchAnalyze}

@@ -76,6 +76,7 @@ Twitter: http://twitter.com/mfg_labs*/
 
 i, .icon {
   color: rgb(50, 50, 50);
+  text-shadow: 1px 1px 1px rgba(27, 27, 27, 0.25);
   margin: 0.5rem;
   font-family: 'mfg_labs_iconsetregular';
   font-style: normal;
@@ -91,14 +92,15 @@ i:hover, .icon:hover {
   font-weight: normal;
 }
 
-.warn:hover, .warn:hover {
-  color: rgb(180, 40, 40);
+.warn:hover {
+  color: rgb(145, 45, 45);
   font-style: normal;
   font-weight: normal;
 }
 
-i .selected, icon .selected {
-  color: blue;
+.selected, .selected:hover {
+  color: rgb(111, 143, 151);
+  text-shadow: none;
 }
 
 .icon2x { font-size: 2em; }
