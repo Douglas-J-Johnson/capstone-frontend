@@ -11,13 +11,13 @@ export default function SearchResult (
     return (
         <>
             {editRead === 'read' ? 
-            <div className="search-result" onClick={() => selectSearchResult(searchResult.entryID)}>
+            <div className={`search-result ${searchResult.selected ? "selected-result" : ""}`} onClick={() => selectSearchResult(searchResult.entryID, searchResult.resultID)}>
                 <div className="search-result-date">{searchResult.entryDate}</div>
-                <div className="search-result-excerpt">...{searchResult.excerpt}...</div>
+                <div className="search-result-excerpt">{searchResult.excerpt}</div>
             </div> :
-            <div className="search-result">
+            <div className={`search-result ${searchResult.selected ? "selected-result" : ""}`}>
                 <div className="search-result-date">{searchResult.entryDate}</div>
-                <div className="search-result-excerpt">...{searchResult.excerpt}...</div>
+                <div className="search-result-excerpt">{searchResult.excerpt}</div>
             </div>}
         </>
     )

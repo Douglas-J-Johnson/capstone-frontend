@@ -48,7 +48,7 @@ class App extends React.Component {
       },
       entries: [],
       readEntryIndex: -1,
-      entry: {
+      entry: { //*** */
         id: null,
         date: moment().format("MMMM D[,] YYYY"),
         dateIsValid: true,
@@ -178,8 +178,6 @@ class App extends React.Component {
   }
 
   getToneAnalysis = async function (serviceURL, serviceToken, textToAnalyze) {
-    //console.log(serviceToken)
-    console.log('Tone Analysis', serviceURL)
     let response = await fetch(serviceURL, 
       {
         method: 'POST',
@@ -196,8 +194,6 @@ class App extends React.Component {
   }
   
   getPersonalityInsights= async function (serviceURL, serviceToken, textToAnalyze) {
-    //console.log(serviceToken)
-    console.log('Personality Insights', serviceURL)
     let response = await fetch(serviceURL, 
       {
         method: 'POST',
@@ -334,7 +330,7 @@ class App extends React.Component {
     const entries = this.state.entries
     let editRead = this.state.editRead
 
-    let entry = {
+    let entry = { //*** */
       id: null,
       date: moment().format("MMMM D[,] YYYY"),
       dateIsValid: true,
@@ -343,7 +339,7 @@ class App extends React.Component {
 
     if(entries.length > 0) {
       const selectedEntry = entries[index]
-
+//*** */
       entry.id = selectedEntry.id
       entry.date = moment(parseInt(selectedEntry.date)).format("MMMM D[,] YYYY")
       entry.dateIsValid = true
@@ -405,7 +401,7 @@ class App extends React.Component {
       }
     }
     else if (desiredState === 'new') {
-      const entry = {
+      const entry = {//*** */
         id: null,
         date: moment().format("MMMM D[,] YYYY"),
         dateIsValid: true,
@@ -423,27 +419,80 @@ class App extends React.Component {
     this.setState({searchAnalyze: desiredState})
   }
 
+  selectSearchResult = (entryID, searchResultID) => {
+    const currentSearchResults = this.state.searchResults
+    this.entryByEntryId(entryID)
+  
+    const searchResults = currentSearchResults.map(searchResult => {
+      console.log(searchResult.resultID, searchResultID)
+      if(searchResult.resultID === searchResultID) {
+        searchResult.selected = true
+      }
+      else {
+        searchResult.selected = false
+      }
+
+      return searchResult
+    })
+
+    this.setState({searchResults: searchResults})
+  }
+
   executeSearch = () => {
     const searchText = this.state.searchText
     const entries = this.state.entries
 
     let searchResults = []
+    let firstFound = -1
+    let resultID = 0
 
     entries.forEach(entry => {
       const entryText = entry.text
-      let index = entryText.search(`/${searchText}/i`)
+      let index = entryText.search(searchText)
+      const preFindChars = 40
+      const searchTextLength = searchText.length
+      const postFindChars = 100
 
       if(index > -1) {
-        const searchResult = {
-          entryID: entry.id,
-          entryDate: moment(entry.date).format("MMMM D[,] YYYY"),
-          excerpt: entryText.substring(index, 40)
+        let startIndex = index-preFindChars
+        let selected = false
+
+        if(firstFound == -1) {
+          firstFound = entry.id
+          selected = true
         }
+
+        if (startIndex < 0) {
+          startIndex = 0
+        }
+
+        let excerptText = entryText.slice(startIndex, startIndex+searchTextLength+postFindChars)
+
+        if(startIndex > 0) {
+          excerptText = "...".concat(excerptText)
+        }
+
+        if(startIndex+searchTextLength+postFindChars < entryText.length) {
+          excerptText.concat("...")
+        }
+
+        const searchResult = {
+          resultID: resultID,
+          entryID: entry.id,
+          entryDate: moment(parseInt(entry.date)).format("MMMM D[,] YYYY"),
+          excerpt: excerptText,
+          selected: selected
+        }
+
+        resultID = resultID + 1
 
         searchResults.push(searchResult)
       }
     })
 
+    if(firstFound > -1) {
+      this.entryByEntryId(firstFound)
+    }
     this.setState({searchResults: searchResults})
   }
 
@@ -509,7 +558,7 @@ class App extends React.Component {
   createEntry = () => {
     const entry = this.state.entry
 
-    let newEntry = {
+    let newEntry = {//*** */
       id: null,
       date: moment(entry.date).valueOf(),
       dateIsValid: entry.dateIsValid,
@@ -638,6 +687,7 @@ class App extends React.Component {
                           const entries = entriesResponseBody.entries.sort((a, b) => a.date - b.date)
                           this.setState({entries: entries})
                           this.entryByEntryId(newEntry.id)
+                          console.log('Create Complete')
                         }
                         else {
                           console.log("Error retrieving all entries.", entriesResponseBody)
@@ -809,7 +859,7 @@ class App extends React.Component {
               executeSearch={this.executeSearch}
               clearSearchText={this.clearSearchText}
               searchResults={this.state.searchResults}
-              selectSearchResult={this.entryByEntryId}
+              selectSearchResult={this.selectSearchResult}
             />
           </div> : null}
       </div>

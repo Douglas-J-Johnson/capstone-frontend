@@ -143,3 +143,7 @@ h2 {
 	margin: 0.5rem;
 	color: rgb(50, 50, 50);
 }
+
+.selected-result {
+	background-color: rgba(111, 143, 151, 0.5);
+}
