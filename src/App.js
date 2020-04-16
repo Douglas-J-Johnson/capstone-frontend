@@ -47,7 +47,7 @@ class App extends React.Component {
         nlu : {url: '', token: ''},
       },
       entries: [],
-      readEntryIndex: 0,
+      readEntryIndex: -1,
       entry: {
         id: null,
         date: moment().format("MMMM D[,] YYYY"),
@@ -55,6 +55,7 @@ class App extends React.Component {
         text: ""
       },
       searchText: "",
+      searchResults: [],
       loginMessage: "",
       loginError: "",
       editMessage: "",
@@ -230,6 +231,7 @@ class App extends React.Component {
   // } 
 
   login = (username, password) => {
+    console.log('login')
     const user = {user: {username: username, password: password}}
 
     fetch(`${BASE_URL}/login`, {method: "POST",
@@ -321,8 +323,6 @@ class App extends React.Component {
   }
 
   setLoginSignup = (desiredState) => {
-    
-
     this.setState({
       loginSignup: desiredState,
       loginMessage: '',
@@ -332,16 +332,29 @@ class App extends React.Component {
 
   setEntry = (index) => {
     const entries = this.state.entries
-    const selectedEntry = entries[index]
+    let editRead = this.state.editRead
 
-    const entry = {
-      id: selectedEntry.id,
-      date: moment(parseInt(selectedEntry.date)).format("MMMM D[,] YYYY"),
+    let entry = {
+      id: null,
+      date: moment().format("MMMM D[,] YYYY"),
       dateIsValid: true,
-      text: selectedEntry.text
+      text: ""
     }
 
-    this.setState({entry: entry, readEntryIndex: index})
+    if(entries.length > 0) {
+      const selectedEntry = entries[index]
+
+      entry.id = selectedEntry.id
+      entry.date = moment(parseInt(selectedEntry.date)).format("MMMM D[,] YYYY")
+      entry.dateIsValid = true
+      entry.text = selectedEntry.text
+    }
+    else {
+      index = -1
+      editRead = 'edit'
+    }
+
+    this.setState({entry: entry, readEntryIndex: index, editRead: editRead})
   }
 
   entryByEntryId = (entryID) => {
@@ -390,12 +403,6 @@ class App extends React.Component {
       if (currentEntry.id === null) {
         this.newestEntry()
       }
-      else {
-        // change
-      }
-    }
-    else if (desiredState === 'edit') {
-      // change?
     }
     else if (desiredState === 'new') {
       const entry = {
@@ -409,7 +416,6 @@ class App extends React.Component {
       this.setState({entry})
     }
 
-    console.log('Desired State', desiredState)
     this.setState({editRead: desiredState})
   }
 
@@ -419,8 +425,26 @@ class App extends React.Component {
 
   executeSearch = () => {
     const searchText = this.state.searchText
+    const entries = this.state.entries
 
-    // Call B/E record search
+    let searchResults = []
+
+    entries.forEach(entry => {
+      const entryText = entry.text
+      let index = entryText.search(`/${searchText}/i`)
+
+      if(index > -1) {
+        const searchResult = {
+          entryID: entry.id,
+          entryDate: moment(entry.date).format("MMMM D[,] YYYY"),
+          excerpt: entryText.substring(index, 40)
+        }
+
+        searchResults.push(searchResult)
+      }
+    })
+
+    this.setState({searchResults: searchResults})
   }
 
   customCheckDateIsValid = (date) => {
@@ -465,6 +489,23 @@ class App extends React.Component {
     this.setState({entry})
   }
 
+  textChanged = () => {
+    const entryID = this.state.entry.id
+    const entryText = this.state.entry.text
+    const entries = this.state.entries
+    const numberOfEntries = this.state.entries.length
+
+    for(let i = 0; i < numberOfEntries; i++) {
+      if (entries[i].id === entryID) {
+        if(entries[i].text !== entryText) {
+          return true
+        }
+      }
+    }
+
+    return false
+  }
+
   createEntry = () => {
     const entry = this.state.entry
 
@@ -479,37 +520,90 @@ class App extends React.Component {
       return
     }
 
-    if (entry.id) {
-      // Call analyze
-      // UPDATE!!!!!
-      // fetch(`${BASE_URL}/`)
-      // if successful
-      // else
-      // Retrieve Entries
-      // fetch(`${BASE_URL}/entries`, {
-      //   headers: {
-      //     'Accept': 'application/json',
-      //     'Authorization' : localStorage.getItem('token')
-      //   }})
-      //   .then(entriesResponse => {
-      //     entriesResponse.json().then(entriesResponseBody=>{
-      //       if(response.ok) {
-      //         const entries = entriesResponseBody.entries.sort((a, b) => a.date - b.date)
-      //         this.setState({entries})
-      //       }
-      //     })
-      //   })
+    if (entry.id && this.textChanged()) {
+      /* UPDATE ENTRY?
+        Check to see if text is different, 
+        X Update Entry,
+        X Request Analysis,
+        Update Analysis, 
+        Retrieve All Entries (and sort and put in state) */
+      fetch(`${BASE_URL}/entries/${entry.id}`,{method: "PUT",
+        headers: {
+          'Accept': 'application/json',
+          'Authorization' : localStorage.getItem('token'),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({entry: newEntry})
+      }
+      )
+      .then(updateEntryResponse =>{
+        updateEntryResponse.json().then(entryResponse => {
+          if(updateEntryResponse.ok) {
+            newEntry.id = entryResponse.entry.id
+            newEntry.date = moment(newEntry.date).format("MMMM D[,] YYYY")
+            this.setState({newEntry})
+
+            this.analyzeText(newEntry.text)
+            .then(analyses => {
+              fetch(`${BASE_URL}/analyses/${entry.analysis.id}`,{method: "PUT",
+                  headers: {
+                    'Accept': 'application/json',
+                    'Authorization' : localStorage.getItem('token'),
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({analysis: {entry_id: newEntry.id, raw_results: analyses}})
+                }
+              )
+              .then(analysisUpdateResponse =>{
+                analysisUpdateResponse.json().then(analysisResponse => {
+                  if(analysisUpdateResponse.ok) {
+                    fetch(`${BASE_URL}/entries`, {
+                      headers: {
+                        'Accept': 'application/json',
+                        'Authorization' : localStorage.getItem('token')
+                      }
+                    })
+                    .then(entriesResponse => {
+                      entriesResponse.json().then(entriesResponseBody=>{
+                        if(entriesResponse.ok) {
+                          const entries = entriesResponseBody.entries.sort((a, b) => a.date - b.date)
+                          this.setState({entries: entries})
+                          this.entryByEntryId(newEntry.id)
+                        }
+                        else {
+                          console.log("Error retrieving all entries.", entriesResponseBody)
+                        }
+                      })
+                    })
+                  }
+                  else {
+                    console.log("Analysis creation error.", analysisResponse)
+                  }
+                })
+              })
+            })
+            .catch(error => console.log('Credential Refresh Error', error));
+          }
+          else {
+            console.log("Entry creation error.", entryResponse)
+          }
+        })
+      })
     }
     else {
-      // CREATE!!!!!
+      /* CREATE ENTRY 
+        X Create Entry,
+        X Request Analysis,
+        X Store Analysis, 
+        X Retrieve All Entries (and sort and put in state) */
       fetch(`${BASE_URL}/entries`,{method: "POST",
-          headers: {
-            'Accept': 'application/json',
-            'Authorization' : localStorage.getItem('token'),
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({entry: newEntry})
-        }
+      headers: {
+        'Accept': 'application/json',
+        'Authorization' : localStorage.getItem('token'),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({entry: newEntry})
+      }
       )
       .then(createResponse =>{
         createResponse.json().then(response => {
@@ -546,13 +640,13 @@ class App extends React.Component {
                           this.entryByEntryId(newEntry.id)
                         }
                         else {
-                          console.log("Error retrieving all entries.", response)
+                          console.log("Error retrieving all entries.", entriesResponseBody)
                         }
                       })
                     })
                   }
                   else {
-                    console.log("Analysis creation error.", response)
+                    console.log("Analysis creation error.", analysisResponse)
                   }
                 })
               })
@@ -567,30 +661,44 @@ class App extends React.Component {
     }
   }
 
-  DeleteEntry = () => {
-    /* fetch(`${BASE_URL}/analyses/${analysis.id}`, {
+  deleteEntry = () => {
+    const entryID = this.state.entry.id
+    console.log('delete entry', entryID)
+
+    fetch(`${BASE_URL}/entries/${entryID}`, {
       method: 'DELETE',
       headers: {
         'Accept': 'application/json',
         'Authorization' : localStorage.getItem('token')
       }
     })
-    .then(analysisResponse => {
-      if(analysisResponse.ok) {
-        fetch(`${BASE_URL}/analyses/${analysis.id}`, {
-          method: 'DELETE',
+    .then(entryDeleteResponse => {
+      if(entryDeleteResponse.ok) {
+        fetch(`${BASE_URL}/entries`, {
           headers: {
             'Accept': 'application/json',
             'Authorization' : localStorage.getItem('token')
           }
         })
-        .then(entryResponse => {
-          if(entryReponse.ok) {
-            //update state
-          }
+        .then(entriesResponse => {
+          entriesResponse.json().then(entriesResponseBody=>{
+            if(entriesResponse.ok) {
+              const entries = entriesResponseBody.entries.sort((a, b) => a.date - b.date)
+              this.setState({entries: entries})
+              this.newestEntry()
+            }
+            else {
+              console.log("Error retrieving all entries.", entriesResponseBody)
+            }
+          })
         })
       }
-    })*/
+      else {
+        console.log("Error deleting entry.", entryDeleteResponse)
+      }
+    })
+
+    this.newestEntry()
   }
 
   editSearchText = (event) => {
@@ -690,14 +798,18 @@ class App extends React.Component {
               editEntryText={this.editEntryText}
               clearEntryText={this.clearEntryText}
               createEntry={this.createEntry}
+              deleteEntry={this.deleteEntry}
             />
             <Tools
+              editRead={this.state.editRead}
               searchAnalyze={this.state.searchAnalyze}
               setSearchAnalyze={this.setSearchAnalyze}
               searchText={this.state.searchText}
               editSearchText={this.editSearchText} 
               executeSearch={this.executeSearch}
               clearSearchText={this.clearSearchText}
+              searchResults={this.state.searchResults}
+              selectSearchResult={this.entryByEntryId}
             />
           </div> : null}
       </div>

@@ -5,18 +5,21 @@ import ReadPage from './ReadPage'
 import EditPage from './EditPage'
 
 export default function Entry(
-  {entry, 
-  editRead,
-  setEditRead,
-  previousEntry,
-  nextEntry,
-  recording,
-  startRecording,
-  stopRecording,
-  editEntryDate,
-  editEntryText,
-  createEntry,
-  clearEntryText}
+  {
+    entry, 
+    editRead,
+    setEditRead,
+    previousEntry,
+    nextEntry,
+    recording,
+    startRecording,
+    stopRecording,
+    editEntryDate,
+    editEntryText,
+    createEntry,
+    clearEntryText,
+    deleteEntry
+  }
   ) {
 
   return (
@@ -37,6 +40,7 @@ export default function Entry(
             setEditRead={setEditRead}
             previousEntry={previousEntry}
             nextEntry={nextEntry}
+            deleteEntry={deleteEntry}
           />
         }
         {editRead === 'edit' || editRead === 'new' ?

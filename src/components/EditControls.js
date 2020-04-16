@@ -35,8 +35,8 @@ export default function EditControls(
                     <i className="icon-check icon3x" onClick={createEntry}></i>
                 }
                 {recording ?
-                    <i className="icon-trash_can warn icon3x"></i> :
-                    <i className="icon-trash_can warn icon3x" onClick={clearEntryText}></i>
+                    <i className="icon-cross_mark warn icon3x"></i> :
+                    <i className="icon-cross_mark warn icon3x" onClick={clearEntryText}></i>
                 }
             </div>
       </div>

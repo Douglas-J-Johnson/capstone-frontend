@@ -26,8 +26,14 @@ export default function SearchControls(
                     value={searchText}
                     onChange={editSearchText}
                 ></input>
-                <i className="icon-chevron_right icon3x" onClick={executeSearch}></i>
-                <i className="icon-cross_mark icon3x" onClick={clearSearchText}></i>
+                {searchText !== "" ?
+                    <i className="icon-chevron_right icon3x" onClick={executeSearch}></i> :
+                    <i className="icon-chevron_right icon3x"></i>
+                }
+                {searchText !== "" ?
+                    <i className="icon-cross_mark icon3x" onClick={clearSearchText}></i> :
+                    <i className="icon-cross_mark icon3x"></i>
+                }
             </div>
         </div>
     )

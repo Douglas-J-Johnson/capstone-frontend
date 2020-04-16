@@ -7,7 +7,8 @@ export default function ReadControls(
         editRead,
         setEditRead,
         previousEntry,
-        nextEntry
+        nextEntry,
+        deleteEntry
     }) {
     return (
     <div className="controls read-controls">
@@ -19,6 +20,9 @@ export default function ReadControls(
             <i className="icon-arrow_big_left" onClick={previousEntry}></i>
                 <div className="controls-text">{entry.date}</div>
             <i className="icon-arrow_big_right" onClick={nextEntry}></i>
+        </div>
+        <div className="controls">
+            <i className="icon-trash_can warn  icon3x" onClick={deleteEntry}></i>
         </div>
       </div>
     )

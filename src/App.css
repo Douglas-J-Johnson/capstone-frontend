@@ -17,6 +17,7 @@ h2 {
 	font-size: 1.5rem;
 	line-height: 1.5;
 	border: 0px;
+	color: rgb(50, 50, 50);
 	background-color: rgb(250, 250, 245);
 	height: 750px;
 }
@@ -111,7 +112,6 @@ h2 {
 	margin: 0.5rem;
 }
 
-
 .login-signin-logout-button {
 	font-family: 'Open Sans', sans-serif;
 	font-size: 1.25rem;
@@ -120,4 +120,26 @@ h2 {
 	border: 0px;
 	background-color: rgb(250, 250, 245);
 	width: 8rem;
+}
+
+.search-result {
+	margin-left: 2rem;
+	margin-right: 2rem;
+	margin-top: 1.5rem;
+	padding: 0.5rem;
+	background-color: rgb(255, 255, 255);
+}
+
+.search-result-date {
+	font-family: 'Libre Caslon Text', serif;
+	font-size: 1.75rem;
+	margin: 0.5rem;
+	color: rgb(50, 50, 50);
+}
+
+.search-result-excerpt {
+	font-family: 'Lustria', serif;
+	font-size: 1.25rem;
+	margin: 0.5rem;
+	color: rgb(50, 50, 50);
 }
